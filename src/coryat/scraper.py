@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 
 _SEARCH_URL = "https://j-archive.com/search.php"
 _GAME_URL = "https://j-archive.com/showgame.php"
+_SEASON_URL = "https://j-archive.com/showseason.php"
 
 
 def _find_game_id(date: str) -> int | None:
@@ -55,12 +56,47 @@ def _scrape_categories(game_id: int) -> tuple[list[str], list[str]] | None:
     return None
 
 
-def fetch_categories(date: str) -> tuple[list[str] | None, list[str] | None, str]:
+def find_game_by_season_episode(season: int, episode: int) -> tuple[str, int] | None:
+    """
+    Resolve a season + episode number to (date_YYYYMMDD, game_id).
+    Episodes are numbered from 1 in air-date order.
+    Returns None on network failure or if the episode index is out of range.
+    """
+    try:
+        resp = requests.get(_SEASON_URL, params={"season": season}, timeout=8)
+        resp.raise_for_status()
+    except Exception:
+        return None
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    entries = []
+    for a in soup.find_all("a", href=True):
+        m_id = re.search(r"showgame\.php\?game_id=(\d+)", a["href"])
+        if not m_id:
+            continue
+        m_date = re.search(r"aired\s+(\d{4}-\d{2}-\d{2})", a.get_text())
+        if not m_date:
+            continue
+        game_id = int(m_id.group(1))
+        date_str = m_date.group(1).replace("-", "")
+        entries.append((date_str, game_id))
+
+    # J! Archive lists newest episodes first; reverse to get chronological order.
+    entries.reverse()
+
+    if episode < 1 or episode > len(entries):
+        return None
+    return entries[episode - 1]
+
+
+def fetch_categories(date: str, game_id: int | None = None) -> tuple[list[str] | None, list[str] | None, str]:
     """
     Returns (single_cats, double_cats, status_message).
     On any failure, returns (None, None, error_message).
+    Accepts an optional game_id to skip the date-based search.
     """
-    game_id = _find_game_id(date)
+    if game_id is None:
+        game_id = _find_game_id(date)
     if game_id is None:
         return None, None, "J! Archive: unavailable, enter categories manually"
 

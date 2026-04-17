@@ -50,3 +50,8 @@ def test_all_result_codes():
     ]
     # 200 - 400 + 0 + 0 + 1000 - 1200 = -400
     assert coryat(clues) == -400
+
+
+def test_dd_skipped():
+    clues = [_clue("d.", 500)]
+    assert coryat(clues) == 0

@@ -8,6 +8,7 @@ from .board import Board, CellState, NUM_CATEGORIES, NUM_ROWS
 
 CELL_W = 13  # inner width of each cell column
 CELL_H = 3   # inner height (1 content line + 2 borders counted from divider perspective)
+HEADER_PADDING = 5  # blank lines above and below category names
 
 _STATE_SYMBOL = {
     CellState.EMPTY: "",
@@ -17,6 +18,7 @@ _STATE_SYMBOL = {
     CellState.UNREVEALED: "\u2013",
     CellState.DD_CORRECT: "DD\u2713",
     CellState.DD_WRONG: "DD\u2717",
+    CellState.DD_SKIPPED: "DD\u00b7",
 }
 
 
@@ -58,12 +60,20 @@ def _render_board(term: Terminal, board: Board, cur_row: int, cur_col: int, stat
     print(term.bold(f"  {round_label}"))
     print()
 
+    # Padding above categories
+    for _ in range(HEADER_PADDING):
+        print()
+
     # Category row
     cat_row = ""
     for i, cat in enumerate(board.categories):
         truncated = cat[:CELL_W].center(CELL_W)
         cat_row += truncated + " "
     print("  " + cat_row)
+
+    # Padding below categories
+    for _ in range(HEADER_PADDING):
+        print()
 
     # Top border
     top = "\u250c" + ("\u2500" * CELL_W + "\u252c") * (NUM_CATEGORIES - 1) + "\u2500" * CELL_W + "\u2510"
@@ -83,7 +93,7 @@ def _render_board(term: Terminal, board: Board, cur_row: int, cur_col: int, stat
                 sym = _STATE_SYMBOL[cell.state]
                 text = sym.center(CELL_W)
                 color = _color_for_state(term, cell.state)
-                if cell.state in (CellState.DD_CORRECT, CellState.DD_WRONG):
+                if cell.state in (CellState.DD_CORRECT, CellState.DD_WRONG, CellState.DD_SKIPPED):
                     color = color + term.bold
 
             if is_active:
@@ -108,13 +118,12 @@ def _render_board(term: Terminal, board: Board, cur_row: int, cur_col: int, stat
 
 
 def _dd_overlay(term: Terminal) -> CellState | None:
-    """Show the Daily Double overlay. Returns DD_CORRECT, DD_WRONG, or None (cancel)."""
-    width = 29
+    """Show the Daily Double overlay. Returns DD_CORRECT, DD_WRONG, DD_SKIPPED, or None (cancel)."""
+    width = 31
     lines = [
         "\u250c" + "\u2500" * (width - 2) + "\u2510",
         "\u2502" + "      DAILY DOUBLE       ".center(width - 2) + "\u2502",
-        "\u2502" + "  correct or wrong?      ".center(width - 2) + "\u2502",
-        "\u2502" + "      [c]   [w]          ".center(width - 2) + "\u2502",
+        "\u2502" + "  [c]orrect [w]rong [.]skip  ".center(width - 2) + "\u2502",
         "\u2514" + "\u2500" * (width - 2) + "\u2518",
     ]
     # Center on screen
@@ -131,6 +140,8 @@ def _dd_overlay(term: Terminal) -> CellState | None:
                 return CellState.DD_CORRECT
             if key == "w":
                 return CellState.DD_WRONG
+            if key == ".":
+                return CellState.DD_SKIPPED
             if key.name == "KEY_ESCAPE" or key == "\x1b":
                 return None
 
@@ -186,12 +197,24 @@ def run_tui(
             elif key == "u":
                 single_board.set_state(cur_row, cur_col, CellState.UNREVEALED)
             elif key == "d":
+                if not single_board.can_place_dd(cur_row, cur_col):
+                    status = "Cannot place DD in first row (lowest value)"
+                    continue
+                # Check if already at max DDs for Single J!
+                if len(single_board.get_dds()) >= 1 and not single_board.get(cur_row, cur_col).is_daily_double:
+                    status = "Single Jeopardy already has 1 daily double"
+                    continue
                 result = _dd_overlay(term)
                 if result is not None:
                     single_board.set_state(cur_row, cur_col, result)
             elif key.name == "KEY_TAB":
                 if not single_board.all_marked:
                     status = f"cannot advance: {single_board.unmarked_count()} cell(s) unmarked. use [u] for unrevealed."
+                    continue
+                # Validate Single J! DD constraints
+                dd_error = single_board.validate_dd_constraints()
+                if dd_error:
+                    status = dd_error
                     continue
                 _render_board(term, single_board, cur_row, cur_col, status)
                 if _confirm(term, "Switch to Double Jeopardy? All Single J! cells are filled."):
@@ -233,12 +256,30 @@ def run_tui(
             elif key == "u":
                 double_board.set_state(cur_row, cur_col, CellState.UNREVEALED)
             elif key == "d":
+                if not double_board.can_place_dd(cur_row, cur_col):
+                    status = "Cannot place DD in first row (lowest value)"
+                    continue
+                # Check if already at max DDs for Double J!
+                dds = double_board.get_dds()
+                if len(dds) >= 2 and not double_board.get(cur_row, cur_col).is_daily_double:
+                    status = "Double Jeopardy already has 2 daily doubles"
+                    continue
+                # Check for different column constraint if placing 2nd DD
+                if len(dds) == 1 and not double_board.get(cur_row, cur_col).is_daily_double:
+                    if dds[0][1] == cur_col:
+                        status = "2 DDs must be in different columns"
+                        continue
                 result = _dd_overlay(term)
                 if result is not None:
                     double_board.set_state(cur_row, cur_col, result)
             elif key == "s":
                 if not double_board.all_marked:
                     status = f"cannot save: {double_board.unmarked_count()} cell(s) unmarked. use [u] for unrevealed."
+                    continue
+                # Validate DD constraints
+                dd_error = double_board.validate_dd_constraints()
+                if dd_error:
+                    status = dd_error
                     continue
                 # Build clue list and return
                 all_clues = (

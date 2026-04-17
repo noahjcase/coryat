@@ -10,6 +10,7 @@ class CellState(Enum):
     UNREVEALED = "u"
     DD_CORRECT = "dc"
     DD_WRONG = "dw"
+    DD_SKIPPED = "d."
 
 
 SINGLE_VALUES = (200, 400, 600, 800, 1000)
@@ -29,7 +30,7 @@ class Cell:
 
     @property
     def is_daily_double(self) -> bool:
-        return self.state in (CellState.DD_CORRECT, CellState.DD_WRONG)
+        return self.state in (CellState.DD_CORRECT, CellState.DD_WRONG, CellState.DD_SKIPPED)
 
 
 @dataclass
@@ -58,6 +59,45 @@ class Board:
 
     def unmarked_count(self) -> int:
         return sum(1 for row in self.cells for cell in row if not cell.is_marked)
+
+    def can_place_dd(self, row: int, col: int) -> bool:
+        """Check if a DD can be placed at (row, col)."""
+        # No DD in first row (lowest cash value)
+        if row == 0:
+            return False
+        return True
+
+    def get_dds(self) -> list[tuple[int, int]]:
+        """Return list of (row, col) tuples for all DDs on the board."""
+        dds = []
+        for row_idx, row in enumerate(self.cells):
+            for col_idx, cell in enumerate(row):
+                if cell.is_daily_double:
+                    dds.append((row_idx, col_idx))
+        return dds
+
+    def validate_dd_constraints(self) -> str | None:
+        """
+        Validate DD constraints for a complete board.
+        Returns error message if invalid, None if valid.
+        """
+        dds = self.get_dds()
+        single_or_double = self.round_name
+
+        if single_or_double == "single":
+            if len(dds) != 1:
+                return f"Single Jeopardy must have exactly 1 daily double (found {len(dds)})"
+        elif single_or_double == "double":
+            if len(dds) > 2:
+                return f"Double Jeopardy can have at most 2 daily doubles (found {len(dds)})"
+            # If the entire board is revealed, there must be exactly 2 DDs
+            if self.all_marked and len(dds) != 2:
+                return f"Double Jeopardy board is complete but has {len(dds)} daily doubles (need exactly 2)"
+            # If there are 2 DDs, they must be in different columns
+            if len(dds) == 2:
+                if dds[0][1] == dds[1][1]:
+                    return "The 2 Double Jeopardy daily doubles must be in different columns"
+        return None
 
     def to_clue_dicts(self, date: str) -> list[dict]:
         clues = []
