@@ -51,13 +51,38 @@ def _prompt_categories(term: Terminal, round_label: str, prefilled: list[str] | 
     return cats
 
 
-def _wrap_text(text: str, width: int) -> list[str]:
-    """Wrap text into lines of max width characters."""
+def _wrap_text_by_words(text: str, width: int) -> list[str]:
+    """
+    Wrap text at word boundaries, breaking long words at width boundary.
+    Returns list of lines.
+    """
+    if not text.strip():
+        return [""]
+
     lines = []
-    while text:
-        lines.append(text[:width])
-        text = text[width:]
-    return lines if lines else [""]
+    current_line = ""
+    words = text.split()
+
+    for word in words:
+        # If word fits on current line, add it
+        if len(current_line) + len(word) + (1 if current_line else 0) <= width:
+            current_line += (" " + word) if current_line else word
+        else:
+            # Word doesn't fit; save current line and start new one
+            if current_line:
+                lines.append(current_line)
+
+            # If word itself is too long, break it at boundary
+            while len(word) > width:
+                lines.append(word[:width])
+                word = word[width:]
+
+            current_line = word
+
+    if current_line:
+        lines.append(current_line)
+
+    return lines
 
 
 def _render_board(term: Terminal, board: Board, cur_row: int, cur_col: int, status: str):
@@ -68,23 +93,28 @@ def _render_board(term: Terminal, board: Board, cur_row: int, cur_col: int, stat
     print(term.bold(f"  {round_label}"))
     print()
 
-    # Category rows (wrapped to fit in available space)
-    cat_lines = [_wrap_text(cat, CELL_W) for cat in board.categories]
+    # Category section with word-wrapped names and borders
+    cat_lines = [_wrap_text_by_words(cat, CELL_W) for cat in board.categories]
     max_lines = max(len(lines) for lines in cat_lines) if cat_lines else 1
 
+    # Top border
+    top = "\u250c" + ("\u2500" * CELL_W + "\u252c") * (NUM_CATEGORIES - 1) + "\u2500" * CELL_W + "\u2510"
+    print("  " + top)
+
+    # Category rows with borders
     for line_idx in range(max_lines):
-        cat_row = ""
+        cat_row = "\u2502"
         for cat_idx, cat_line_list in enumerate(cat_lines):
             if line_idx < len(cat_line_list):
                 line_text = cat_line_list[line_idx].center(CELL_W)
             else:
                 line_text = " " * CELL_W
-            cat_row += line_text + " "
+            cat_row += line_text + "\u2502"
         print("  " + cat_row)
 
-    # Top border
-    top = "\u250c" + ("\u2500" * CELL_W + "\u252c") * (NUM_CATEGORIES - 1) + "\u2500" * CELL_W + "\u2510"
-    print("  " + top)
+    # Divider after category section
+    div = "\u251c" + ("\u2500" * CELL_W + "\u253c") * (NUM_CATEGORIES - 1) + "\u2500" * CELL_W + "\u2524"
+    print("  " + div)
 
     for row_idx in range(NUM_ROWS):
         # Content row
