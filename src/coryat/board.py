@@ -5,11 +5,11 @@ from enum import Enum
 class CellState(Enum):
     EMPTY = "empty"
     CORRECT = "c"
-    WRONG = "w"
+    WRONG = "x"
     SKIPPED = "."
     UNREVEALED = "u"
     DD_CORRECT = "dc"
-    DD_WRONG = "dw"
+    DD_WRONG = "dx"
     DD_SKIPPED = "d."
 
 
