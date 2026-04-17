@@ -8,7 +8,6 @@ from .board import Board, CellState, NUM_CATEGORIES, NUM_ROWS
 
 CELL_W = 13  # inner width of each cell column
 CELL_H = 3   # inner height (1 content line + 2 borders counted from divider perspective)
-HEADER_PADDING = 5  # blank lines above and below category names
 
 _STATE_SYMBOL = {
     CellState.EMPTY: "",
@@ -52,6 +51,15 @@ def _prompt_categories(term: Terminal, round_label: str, prefilled: list[str] | 
     return cats
 
 
+def _wrap_text(text: str, width: int) -> list[str]:
+    """Wrap text into lines of max width characters."""
+    lines = []
+    while text:
+        lines.append(text[:width])
+        text = text[width:]
+    return lines if lines else [""]
+
+
 def _render_board(term: Terminal, board: Board, cur_row: int, cur_col: int, status: str):
     print(term.home + term.clear, end="")
 
@@ -60,20 +68,19 @@ def _render_board(term: Terminal, board: Board, cur_row: int, cur_col: int, stat
     print(term.bold(f"  {round_label}"))
     print()
 
-    # Padding above categories
-    for _ in range(HEADER_PADDING):
-        print()
+    # Category rows (wrapped to fit in available space)
+    cat_lines = [_wrap_text(cat, CELL_W) for cat in board.categories]
+    max_lines = max(len(lines) for lines in cat_lines) if cat_lines else 1
 
-    # Category row
-    cat_row = ""
-    for i, cat in enumerate(board.categories):
-        truncated = cat[:CELL_W].center(CELL_W)
-        cat_row += truncated + " "
-    print("  " + cat_row)
-
-    # Padding below categories
-    for _ in range(HEADER_PADDING):
-        print()
+    for line_idx in range(max_lines):
+        cat_row = ""
+        for cat_idx, cat_line_list in enumerate(cat_lines):
+            if line_idx < len(cat_line_list):
+                line_text = cat_line_list[line_idx].center(CELL_W)
+            else:
+                line_text = " " * CELL_W
+            cat_row += line_text + " "
+        print("  " + cat_row)
 
     # Top border
     top = "\u250c" + ("\u2500" * CELL_W + "\u252c") * (NUM_CATEGORIES - 1) + "\u2500" * CELL_W + "\u2510"
