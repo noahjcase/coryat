@@ -108,17 +108,17 @@ Six categories across, five clue values down (200–1000 for Single J!, 400–20
 
 ### Keybindings
 
-| Key | Action |
-|---|---|
-| Arrow keys | Move cursor |
-| `c` | Mark correct |
-| `x` | Mark wrong |
-| `.` | Mark skipped (clue revealed, no answer attempted) |
-| `u` | Mark unrevealed (show never got to this clue) |
-| `d` | Mark as Daily Double (opens overlay for correct/wrong/skip) |
-| `Tab` | Advance to Double Jeopardy (requires all Single J! cells filled) |
-| `s` | Save and quit |
-| `q` | Quit without saving (prompts for confirmation) |
+| Key        | Action                                                      |
+|------------|-------------------------------------------------------------|
+| Arrow keys | Move cursor                                                 |
+| `c`        | Mark correct                                                |
+| `x`        | Mark wrong                                                  |
+| `.`        | Mark skipped (clue revealed, no answer attempted)           |
+| `u`        | Mark unrevealed (show never got to this clue)               |
+| `d`        | Mark as Daily Double (opens overlay for correct/wrong/skip) |
+| `Tab`      | Advance to Double J! (all Single J! cells must be filled)   |
+| `s`        | Save and quit                                               |
+| `q`        | Quit without saving (prompts for confirmation)              |
 
 **Note:** After marking any cell, the cursor automatically advances to the next empty cell in reading order.
 
