@@ -200,6 +200,15 @@ def _advance_to_next_empty(board: Board, cur_row: int, cur_col: int) -> tuple[in
     return (cur_row, cur_col)
 
 
+def _confirm_overwrite(term: Terminal, board: Board, row: int, col: int) -> bool:
+    """If cell is already marked, ask for confirmation before overwriting."""
+    cell = board.get(row, col)
+    if cell.is_marked:
+        _render_board(term, board, row, col, "")
+        return _confirm(term, "Overwrite this cell?")
+    return True
+
+
 def run_tui(
     date: str,
     single_cats: list[str] | None,
@@ -234,17 +243,25 @@ def run_tui(
             elif key.name == "KEY_RIGHT":
                 cur_col = min(NUM_CATEGORIES - 1, cur_col + 1)
             elif key == "c":
-                single_board.set_state(cur_row, cur_col, CellState.CORRECT)
-                cur_row, cur_col = _advance_to_next_empty(single_board, cur_row, cur_col)
+                if _confirm_overwrite(term, single_board, cur_row, cur_col):
+                    single_board.set_state(cur_row, cur_col, CellState.CORRECT)
+                else:
+                    status = "cancelled"
             elif key == "x":
-                single_board.set_state(cur_row, cur_col, CellState.WRONG)
-                cur_row, cur_col = _advance_to_next_empty(single_board, cur_row, cur_col)
+                if _confirm_overwrite(term, single_board, cur_row, cur_col):
+                    single_board.set_state(cur_row, cur_col, CellState.WRONG)
+                else:
+                    status = "cancelled"
             elif key == ".":
-                single_board.set_state(cur_row, cur_col, CellState.SKIPPED)
-                cur_row, cur_col = _advance_to_next_empty(single_board, cur_row, cur_col)
+                if _confirm_overwrite(term, single_board, cur_row, cur_col):
+                    single_board.set_state(cur_row, cur_col, CellState.SKIPPED)
+                else:
+                    status = "cancelled"
             elif key == "u":
-                single_board.set_state(cur_row, cur_col, CellState.UNREVEALED)
-                cur_row, cur_col = _advance_to_next_empty(single_board, cur_row, cur_col)
+                if _confirm_overwrite(term, single_board, cur_row, cur_col):
+                    single_board.set_state(cur_row, cur_col, CellState.UNREVEALED)
+                else:
+                    status = "cancelled"
             elif key == "d":
                 if not single_board.can_place_dd(cur_row, cur_col):
                     status = "Cannot place DD in first row (lowest value)"
@@ -253,10 +270,12 @@ def run_tui(
                 if len(single_board.get_dds()) >= 1 and not single_board.get(cur_row, cur_col).is_daily_double:
                     status = "Single Jeopardy already has 1 daily double"
                     continue
-                result = _dd_overlay(term)
-                if result is not None:
-                    single_board.set_state(cur_row, cur_col, result)
-                    cur_row, cur_col = _advance_to_next_empty(single_board, cur_row, cur_col)
+                if _confirm_overwrite(term, single_board, cur_row, cur_col):
+                    result = _dd_overlay(term)
+                    if result is not None:
+                        single_board.set_state(cur_row, cur_col, result)
+                else:
+                    status = "cancelled"
             elif key.name == "KEY_TAB":
                 if not single_board.all_marked:
                     status = f"cannot advance: {single_board.unmarked_count()} cell(s) unmarked. use [u] for unrevealed."
@@ -298,17 +317,25 @@ def run_tui(
             elif key.name == "KEY_RIGHT":
                 cur_col = min(NUM_CATEGORIES - 1, cur_col + 1)
             elif key == "c":
-                double_board.set_state(cur_row, cur_col, CellState.CORRECT)
-                cur_row, cur_col = _advance_to_next_empty(double_board, cur_row, cur_col)
+                if _confirm_overwrite(term, double_board, cur_row, cur_col):
+                    double_board.set_state(cur_row, cur_col, CellState.CORRECT)
+                else:
+                    status = "cancelled"
             elif key == "x":
-                double_board.set_state(cur_row, cur_col, CellState.WRONG)
-                cur_row, cur_col = _advance_to_next_empty(double_board, cur_row, cur_col)
+                if _confirm_overwrite(term, double_board, cur_row, cur_col):
+                    double_board.set_state(cur_row, cur_col, CellState.WRONG)
+                else:
+                    status = "cancelled"
             elif key == ".":
-                double_board.set_state(cur_row, cur_col, CellState.SKIPPED)
-                cur_row, cur_col = _advance_to_next_empty(double_board, cur_row, cur_col)
+                if _confirm_overwrite(term, double_board, cur_row, cur_col):
+                    double_board.set_state(cur_row, cur_col, CellState.SKIPPED)
+                else:
+                    status = "cancelled"
             elif key == "u":
-                double_board.set_state(cur_row, cur_col, CellState.UNREVEALED)
-                cur_row, cur_col = _advance_to_next_empty(double_board, cur_row, cur_col)
+                if _confirm_overwrite(term, double_board, cur_row, cur_col):
+                    double_board.set_state(cur_row, cur_col, CellState.UNREVEALED)
+                else:
+                    status = "cancelled"
             elif key == "d":
                 if not double_board.can_place_dd(cur_row, cur_col):
                     status = "Cannot place DD in first row (lowest value)"
@@ -323,10 +350,12 @@ def run_tui(
                     if dds[0][1] == cur_col:
                         status = "2 DDs must be in different columns"
                         continue
-                result = _dd_overlay(term)
-                if result is not None:
-                    double_board.set_state(cur_row, cur_col, result)
-                    cur_row, cur_col = _advance_to_next_empty(double_board, cur_row, cur_col)
+                if _confirm_overwrite(term, double_board, cur_row, cur_col):
+                    result = _dd_overlay(term)
+                    if result is not None:
+                        double_board.set_state(cur_row, cur_col, result)
+                else:
+                    status = "cancelled"
             elif key == "s":
                 if not double_board.all_marked:
                     status = f"cannot save: {double_board.unmarked_count()} cell(s) unmarked. use [u] for unrevealed."
