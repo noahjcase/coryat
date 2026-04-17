@@ -76,6 +76,24 @@ class Board:
                     dds.append((row_idx, col_idx))
         return dds
 
+    def next_empty_cell(self, row: int, col: int) -> tuple[int, int] | None:
+        """
+        Find the next empty cell in reading order (left-to-right, top-to-bottom)
+        starting after (row, col). Returns (row, col) or None if no empty cells remain.
+        """
+        # Start from the next position in reading order
+        start_col = col + 1
+        start_row = row
+
+        # Scan rows from current row onwards
+        for r in range(start_row, NUM_ROWS):
+            # For the first row, start from start_col; for others, start from 0
+            c_start = start_col if r == start_row else 0
+            for c in range(c_start, NUM_CATEGORIES):
+                if self.cells[r][c].state == CellState.EMPTY:
+                    return (r, c)
+        return None
+
     def validate_dd_constraints(self) -> str | None:
         """
         Validate DD constraints for a complete board.

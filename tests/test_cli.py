@@ -218,3 +218,78 @@ def test_dd_skipped_is_recognized_as_daily_double():
     assert board.get(1, 0).is_daily_double
     assert len(board.get_dds()) == 1
 
+
+# Cell advancement tests
+def test_next_empty_cell_advances_right():
+    """next_empty_cell should advance right within the same row."""
+    cats = [f"CAT{i}" for i in range(NUM_CATEGORIES)]
+    board = Board(round_name="single", categories=cats)
+
+    # Mark first cell, find next empty
+    board.set_state(0, 0, CellState.CORRECT)
+    next_cell = board.next_empty_cell(0, 0)
+    assert next_cell == (0, 1)
+
+
+def test_next_empty_cell_wraps_to_next_row():
+    """next_empty_cell should wrap to next row when current row is full."""
+    cats = [f"CAT{i}" for i in range(NUM_CATEGORIES)]
+    board = Board(round_name="single", categories=cats)
+
+    # Mark all cells in row 0
+    for col in range(NUM_CATEGORIES):
+        board.set_state(0, col, CellState.CORRECT)
+
+    # From last cell in row 0, next empty should be first cell in row 1
+    next_cell = board.next_empty_cell(0, NUM_CATEGORIES - 1)
+    assert next_cell == (1, 0)
+
+
+def test_next_empty_cell_skips_marked_cells():
+    """next_empty_cell should skip over already-marked cells."""
+    cats = [f"CAT{i}" for i in range(NUM_CATEGORIES)]
+    board = Board(round_name="single", categories=cats)
+
+    # Mark cells 1, 2, 3 in row 0
+    board.set_state(0, 1, CellState.CORRECT)
+    board.set_state(0, 2, CellState.WRONG)
+    board.set_state(0, 3, CellState.SKIPPED)
+
+    # From cell 0, next empty should be cell 4 (skipping 1-3)
+    next_cell = board.next_empty_cell(0, 0)
+    assert next_cell == (0, 4)
+
+
+def test_next_empty_cell_returns_none_when_all_marked():
+    """next_empty_cell should return None if no empty cells remain."""
+    cats = [f"CAT{i}" for i in range(NUM_CATEGORIES)]
+    board = Board(round_name="single", categories=cats)
+
+    # Mark all cells
+    for row in range(NUM_ROWS):
+        for col in range(NUM_CATEGORIES):
+            board.set_state(row, col, CellState.CORRECT)
+
+    # No more empty cells
+    next_cell = board.next_empty_cell(NUM_ROWS - 1, NUM_CATEGORIES - 1)
+    assert next_cell is None
+
+
+def test_next_empty_cell_handles_partial_board():
+    """next_empty_cell should find next empty even with scattered marked cells."""
+    cats = [f"CAT{i}" for i in range(NUM_CATEGORIES)]
+    board = Board(round_name="double", categories=cats)
+
+    # Mark row 0, col 0 and row 1, col 2
+    board.set_state(0, 0, CellState.CORRECT)
+    board.set_state(1, 2, CellState.WRONG)
+
+    # From (0, 0), next empty is (0, 1)
+    assert board.next_empty_cell(0, 0) == (0, 1)
+
+    # From (0, NUM_CATEGORIES - 1), next empty is (1, 0)
+    assert board.next_empty_cell(0, NUM_CATEGORIES - 1) == (1, 0)
+
+    # From (1, 2), next empty is (1, 3)
+    assert board.next_empty_cell(1, 2) == (1, 3)
+

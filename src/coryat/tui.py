@@ -113,7 +113,7 @@ def _render_board(term: Terminal, board: Board, cur_row: int, cur_col: int, stat
     print()
     print(f"  {status}")
     print()
-    print("  [arrows] move  [c]orrect  [w]rong  [.]skip  [u]nrevealed  [d]aily double")
+    print("  [arrows] move  [c]orrect  [x]wrong  [.]skip  [u]nrevealed  [d]aily double")
     print("  [Tab] next round  [s]ave  [q]uit")
 
 
@@ -155,6 +155,14 @@ def _confirm(term: Terminal, message: str) -> bool:
     return str(key).lower() == "y"
 
 
+def _advance_to_next_empty(board: Board, cur_row: int, cur_col: int) -> tuple[int, int]:
+    """After marking a cell, advance to next empty cell if one exists."""
+    next_cell = board.next_empty_cell(cur_row, cur_col)
+    if next_cell is not None:
+        return next_cell
+    return (cur_row, cur_col)
+
+
 def run_tui(
     date: str,
     single_cats: list[str] | None,
@@ -190,12 +198,16 @@ def run_tui(
                 cur_col = min(NUM_CATEGORIES - 1, cur_col + 1)
             elif key == "c":
                 single_board.set_state(cur_row, cur_col, CellState.CORRECT)
-            elif key == "w":
+                cur_row, cur_col = _advance_to_next_empty(single_board, cur_row, cur_col)
+            elif key == "x":
                 single_board.set_state(cur_row, cur_col, CellState.WRONG)
+                cur_row, cur_col = _advance_to_next_empty(single_board, cur_row, cur_col)
             elif key == ".":
                 single_board.set_state(cur_row, cur_col, CellState.SKIPPED)
+                cur_row, cur_col = _advance_to_next_empty(single_board, cur_row, cur_col)
             elif key == "u":
                 single_board.set_state(cur_row, cur_col, CellState.UNREVEALED)
+                cur_row, cur_col = _advance_to_next_empty(single_board, cur_row, cur_col)
             elif key == "d":
                 if not single_board.can_place_dd(cur_row, cur_col):
                     status = "Cannot place DD in first row (lowest value)"
@@ -207,6 +219,7 @@ def run_tui(
                 result = _dd_overlay(term)
                 if result is not None:
                     single_board.set_state(cur_row, cur_col, result)
+                    cur_row, cur_col = _advance_to_next_empty(single_board, cur_row, cur_col)
             elif key.name == "KEY_TAB":
                 if not single_board.all_marked:
                     status = f"cannot advance: {single_board.unmarked_count()} cell(s) unmarked. use [u] for unrevealed."
@@ -249,12 +262,16 @@ def run_tui(
                 cur_col = min(NUM_CATEGORIES - 1, cur_col + 1)
             elif key == "c":
                 double_board.set_state(cur_row, cur_col, CellState.CORRECT)
-            elif key == "w":
+                cur_row, cur_col = _advance_to_next_empty(double_board, cur_row, cur_col)
+            elif key == "x":
                 double_board.set_state(cur_row, cur_col, CellState.WRONG)
+                cur_row, cur_col = _advance_to_next_empty(double_board, cur_row, cur_col)
             elif key == ".":
                 double_board.set_state(cur_row, cur_col, CellState.SKIPPED)
+                cur_row, cur_col = _advance_to_next_empty(double_board, cur_row, cur_col)
             elif key == "u":
                 double_board.set_state(cur_row, cur_col, CellState.UNREVEALED)
+                cur_row, cur_col = _advance_to_next_empty(double_board, cur_row, cur_col)
             elif key == "d":
                 if not double_board.can_place_dd(cur_row, cur_col):
                     status = "Cannot place DD in first row (lowest value)"
@@ -272,6 +289,7 @@ def run_tui(
                 result = _dd_overlay(term)
                 if result is not None:
                     double_board.set_state(cur_row, cur_col, result)
+                    cur_row, cur_col = _advance_to_next_empty(double_board, cur_row, cur_col)
             elif key == "s":
                 if not double_board.all_marked:
                     status = f"cannot save: {double_board.unmarked_count()} cell(s) unmarked. use [u] for unrevealed."
