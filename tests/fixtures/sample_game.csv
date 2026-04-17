@@ -1,0 +1,61 @@
+date,round,category,value,result,is_daily_double
+20230105,single,AMERICAN HISTORY,200,c,false
+20230105,single,AMERICAN HISTORY,400,w,false
+20230105,single,AMERICAN HISTORY,600,u,false
+20230105,single,AMERICAN HISTORY,800,.,false
+20230105,single,AMERICAN HISTORY,1000,c,false
+20230105,single,SCIENCE,200,c,false
+20230105,single,SCIENCE,400,c,false
+20230105,single,SCIENCE,600,dc,true
+20230105,single,SCIENCE,800,w,false
+20230105,single,SCIENCE,1000,u,false
+20230105,single,POTPOURRI,200,c,false
+20230105,single,POTPOURRI,400,.,false
+20230105,single,POTPOURRI,600,u,false
+20230105,single,POTPOURRI,800,u,false
+20230105,single,POTPOURRI,1000,u,false
+20230105,single,WORDPLAY,200,c,false
+20230105,single,WORDPLAY,400,w,false
+20230105,single,WORDPLAY,600,u,false
+20230105,single,WORDPLAY,800,u,false
+20230105,single,WORDPLAY,1000,u,false
+20230105,single,FOOD,200,c,false
+20230105,single,FOOD,400,c,false
+20230105,single,FOOD,600,w,false
+20230105,single,FOOD,800,u,false
+20230105,single,FOOD,1000,u,false
+20230105,single,MOVIES,200,c,false
+20230105,single,MOVIES,400,c,false
+20230105,single,MOVIES,600,.,false
+20230105,single,MOVIES,800,u,false
+20230105,single,MOVIES,1000,u,false
+20230105,double,HISTORY,400,c,false
+20230105,double,HISTORY,800,w,false
+20230105,double,HISTORY,1200,u,false
+20230105,double,HISTORY,1600,u,false
+20230105,double,HISTORY,2000,u,false
+20230105,double,SCIENCE,400,c,false
+20230105,double,SCIENCE,800,dw,true
+20230105,double,SCIENCE,1200,u,false
+20230105,double,SCIENCE,1600,u,false
+20230105,double,SCIENCE,2000,u,false
+20230105,double,LITERATURE,400,c,false
+20230105,double,LITERATURE,800,c,false
+20230105,double,LITERATURE,1200,w,false
+20230105,double,LITERATURE,1600,u,false
+20230105,double,LITERATURE,2000,u,false
+20230105,double,GEOGRAPHY,400,c,false
+20230105,double,GEOGRAPHY,800,.,false
+20230105,double,GEOGRAPHY,1200,u,false
+20230105,double,GEOGRAPHY,1600,u,false
+20230105,double,GEOGRAPHY,2000,u,false
+20230105,double,SPORTS,400,c,false
+20230105,double,SPORTS,800,w,false
+20230105,double,SPORTS,1200,u,false
+20230105,double,SPORTS,1600,u,false
+20230105,double,SPORTS,2000,u,false
+20230105,double,ARTS,400,c,false
+20230105,double,ARTS,800,c,false
+20230105,double,ARTS,1200,.,false
+20230105,double,ARTS,1600,u,false
+20230105,double,ARTS,2000,u,false
