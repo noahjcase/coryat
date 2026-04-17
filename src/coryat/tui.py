@@ -119,11 +119,11 @@ def _render_board(term: Terminal, board: Board, cur_row: int, cur_col: int, stat
 
 def _dd_overlay(term: Terminal) -> CellState | None:
     """Show the Daily Double overlay. Returns DD_CORRECT, DD_WRONG, DD_SKIPPED, or None (cancel)."""
-    width = 31
+    width = 36
     lines = [
         "\u250c" + "\u2500" * (width - 2) + "\u2510",
         "\u2502" + "      DAILY DOUBLE       ".center(width - 2) + "\u2502",
-        "\u2502" + "  [c]orrect [w]rong [.]skip  ".center(width - 2) + "\u2502",
+        "\u2502" + "  [c] correct [x] wrong [.] skip  ".center(width - 2) + "\u2502",
         "\u2514" + "\u2500" * (width - 2) + "\u2518",
     ]
     # Center on screen
