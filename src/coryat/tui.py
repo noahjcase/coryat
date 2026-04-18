@@ -85,7 +85,7 @@ def _wrap_text_by_words(text: str, width: int) -> list[str]:
     return lines
 
 
-def _render_board(term: Terminal, board: Board, cur_row: int, cur_col: int, status: str):
+def _render_board(term: Terminal, board: Board, cur_row: int, cur_col: int, status: str, is_dj: bool = False):
     print(term.home + term.clear, end="")
 
     # Header
@@ -151,7 +151,8 @@ def _render_board(term: Terminal, board: Board, cur_row: int, cur_col: int, stat
     print(f"  {status}")
     print()
     print("  [arrows] move  [c]orrect  [x]wrong  [.]skip  [u]nrevealed  [d]aily double")
-    print("  [Tab] next round  [s]ave  [q]uit")
+    round_hint = "[s]ave  [q]uit" if is_dj else "[s] next round  [q]uit"
+    print(f"  {round_hint}")
 
 
 def _dd_overlay(term: Terminal) -> CellState | None:
@@ -200,19 +201,55 @@ def _advance_to_next_empty(board: Board, cur_row: int, cur_col: int) -> tuple[in
     return (cur_row, cur_col)
 
 
-def _confirm_overwrite(term: Terminal, board: Board, row: int, col: int) -> bool:
+def _confirm_overwrite(term: Terminal, board: Board, row: int, col: int, is_dj: bool = False) -> bool:
     """If cell is already marked, ask for confirmation before overwriting."""
     cell = board.get(row, col)
     if cell.is_marked:
-        _render_board(term, board, row, col, "")
+        _render_board(term, board, row, col, "", is_dj=is_dj)
         return _confirm(term, "Overwrite this cell?")
     return True
+
+
+def _fj_step(term: Terminal, date: str, cat: str | None) -> dict:
+    """Prompt for FJ category (if not scraped) and result, return a clue dict."""
+    if not cat:
+        print(term.clear)
+        print(term.bold("Enter Final Jeopardy! category:"))
+        sys.stdout.write("  Category: ")
+        sys.stdout.flush()
+        cat = sys.stdin.readline().rstrip("\n").strip() or "Unknown"
+
+    with term.fullscreen(), term.cbreak(), term.hidden_cursor():
+        while True:
+            print(term.home + term.clear)
+            print(term.bold("  Final Jeopardy!"))
+            print()
+            print(f"  Category: {cat}")
+            print()
+            print("  [c]orrect  [x]wrong")
+            key = term.inkey()
+            if key == "c":
+                result = "c"
+                break
+            if key == "x":
+                result = "x"
+                break
+
+    return {
+        "date": date,
+        "round": "final",
+        "category": cat,
+        "value": 0,
+        "result": result,
+        "is_daily_double": "false",
+    }
 
 
 def run_tui(
     date: str,
     single_cats: list[str] | None,
     double_cats: list[str] | None,
+    final_cat: str | None,
     scrape_status: str,
 ) -> tuple[list[dict], int] | None:
     """
@@ -276,7 +313,7 @@ def run_tui(
                         single_board.set_state(cur_row, cur_col, result)
                 else:
                     status = "cancelled"
-            elif key.name == "KEY_TAB":
+            elif key == "s":
                 if not single_board.all_marked:
                     status = f"cannot advance: {single_board.unmarked_count()} cell(s) unmarked. use [u] for unrevealed."
                     continue
@@ -288,8 +325,6 @@ def run_tui(
                 _render_board(term, single_board, cur_row, cur_col, status)
                 if _confirm(term, "Switch to Double Jeopardy? All Single J! cells are filled."):
                     break
-            elif key == "s":
-                status = "cannot save: finish Single Jeopardy first, then use [Tab]."
             elif key == "q":
                 _render_board(term, single_board, cur_row, cur_col, status)
                 if _confirm(term, "Quit without saving?"):
@@ -301,11 +336,13 @@ def run_tui(
     double_board = Board(round_name="double", categories=double_categories)
     cur_row, cur_col = 0, 0
     status = scrape_status
+    all_clues = None
+    score = None
 
     with term.fullscreen(), term.cbreak(), term.hidden_cursor():
         # --- Double Jeopardy round ---
         while True:
-            _render_board(term, double_board, cur_row, cur_col, status)
+            _render_board(term, double_board, cur_row, cur_col, status, is_dj=True)
             key = term.inkey()
 
             if key.name == "KEY_UP":
@@ -317,22 +354,22 @@ def run_tui(
             elif key.name == "KEY_RIGHT":
                 cur_col = min(NUM_CATEGORIES - 1, cur_col + 1)
             elif key == "c":
-                if _confirm_overwrite(term, double_board, cur_row, cur_col):
+                if _confirm_overwrite(term, double_board, cur_row, cur_col, is_dj=True):
                     double_board.set_state(cur_row, cur_col, CellState.CORRECT)
                 else:
                     status = "cancelled"
             elif key == "x":
-                if _confirm_overwrite(term, double_board, cur_row, cur_col):
+                if _confirm_overwrite(term, double_board, cur_row, cur_col, is_dj=True):
                     double_board.set_state(cur_row, cur_col, CellState.WRONG)
                 else:
                     status = "cancelled"
             elif key == ".":
-                if _confirm_overwrite(term, double_board, cur_row, cur_col):
+                if _confirm_overwrite(term, double_board, cur_row, cur_col, is_dj=True):
                     double_board.set_state(cur_row, cur_col, CellState.SKIPPED)
                 else:
                     status = "cancelled"
             elif key == "u":
-                if _confirm_overwrite(term, double_board, cur_row, cur_col):
+                if _confirm_overwrite(term, double_board, cur_row, cur_col, is_dj=True):
                     double_board.set_state(cur_row, cur_col, CellState.UNREVEALED)
                 else:
                     status = "cancelled"
@@ -350,7 +387,7 @@ def run_tui(
                     if dds[0][1] == cur_col:
                         status = "2 DDs must be in different columns"
                         continue
-                if _confirm_overwrite(term, double_board, cur_row, cur_col):
+                if _confirm_overwrite(term, double_board, cur_row, cur_col, is_dj=True):
                     result = _dd_overlay(term)
                     if result is not None:
                         double_board.set_state(cur_row, cur_col, result)
@@ -365,14 +402,18 @@ def run_tui(
                 if dd_error:
                     status = dd_error
                     continue
-                # Build clue list and return
                 all_clues = (
                     single_board.to_clue_dicts(date) + double_board.to_clue_dicts(date)
                 )
                 from .scoring import coryat as calc_coryat
                 score = calc_coryat(all_clues)
-                return all_clues, score
+                break
             elif key == "q":
-                _render_board(term, double_board, cur_row, cur_col, status)
+                _render_board(term, double_board, cur_row, cur_col, status, is_dj=True)
                 if _confirm(term, "Quit without saving?"):
                     return None
+
+    # --- Final Jeopardy ---
+    fj_clue = _fj_step(term, date, final_cat)
+    all_clues.append(fj_clue)
+    return all_clues, score

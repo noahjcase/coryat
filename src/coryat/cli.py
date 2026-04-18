@@ -59,12 +59,13 @@ def main():
     double_cats = None
     scrape_status = ""
     if not args.no_scrape and not args.offline:
-        single_cats, double_cats, scrape_status = scraper.fetch_categories(date, game_id=prefetched_game_id)
+        single_cats, double_cats, final_cat, scrape_status = scraper.fetch_categories(date, game_id=prefetched_game_id)
     else:
+        final_cat = None
         scrape_status = "J! Archive: skipped, enter categories manually"
 
     # Run TUI
-    result = tui.run_tui(date, single_cats, double_cats, scrape_status)
+    result = tui.run_tui(date, single_cats, double_cats, final_cat, scrape_status)
     if result is None:
         print("quit without saving.")
         sys.exit(0)

@@ -32,8 +32,8 @@ def _find_game_id(date: str) -> int | None:
     return None
 
 
-def _scrape_categories(game_id: int) -> tuple[list[str], list[str]] | None:
-    """Return (single_cats, double_cats) or None on failure."""
+def _scrape_categories(game_id: int) -> tuple[list[str], list[str], str] | None:
+    """Return (single_cats, double_cats, final_cat) or None on failure."""
     try:
         resp = requests.get(_GAME_URL, params={"game_id": game_id}, timeout=8)
         resp.raise_for_status()
@@ -51,8 +51,16 @@ def _scrape_categories(game_id: int) -> tuple[list[str], list[str]] | None:
 
     single = extract("jeopardy_round")
     double = extract("double_jeopardy_round")
+
+    final_cat = ""
+    fj_div = soup.find("div", id="final_jeopardy_round")
+    if fj_div:
+        fj_td = fj_div.find("td", class_="category_name")
+        if fj_td:
+            final_cat = fj_td.get_text(" ", strip=True)
+
     if len(single) == 6 and len(double) == 6:
-        return single, double
+        return single, double, final_cat
     return None
 
 
@@ -89,20 +97,20 @@ def find_game_by_season_episode(season: int, episode: int) -> tuple[str, int] | 
     return entries[episode - 1]
 
 
-def fetch_categories(date: str, game_id: int | None = None) -> tuple[list[str] | None, list[str] | None, str]:
+def fetch_categories(date: str, game_id: int | None = None) -> tuple[list[str] | None, list[str] | None, str | None, str]:
     """
-    Returns (single_cats, double_cats, status_message).
-    On any failure, returns (None, None, error_message).
+    Returns (single_cats, double_cats, final_cat, status_message).
+    On any failure, returns (None, None, None, error_message).
     Accepts an optional game_id to skip the date-based search.
     """
     if game_id is None:
         game_id = _find_game_id(date)
     if game_id is None:
-        return None, None, "J! Archive: unavailable, enter categories manually"
+        return None, None, None, "J! Archive: unavailable, enter categories manually"
 
     result = _scrape_categories(game_id)
     if result is None:
-        return None, None, "J! Archive: unavailable, enter categories manually"
+        return None, None, None, "J! Archive: unavailable, enter categories manually"
 
-    single, double = result
-    return single, double, "J! Archive: categories loaded \u2713"
+    single, double, final_cat = result
+    return single, double, final_cat or None, "J! Archive: categories loaded \u2713"
