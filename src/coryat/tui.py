@@ -176,7 +176,7 @@ def _dd_overlay(term: Terminal) -> CellState | None:
             key = term.inkey()
             if key == "c":
                 return CellState.DD_CORRECT
-            if key == "w":
+            if key == "x":
                 return CellState.DD_WRONG
             if key == ".":
                 return CellState.DD_SKIPPED
